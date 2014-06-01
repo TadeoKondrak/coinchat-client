@@ -7,7 +7,7 @@
   "test": true,
   "source": {
     "include": [
-      "./lib/coinchat-client.js"
+      "./lib/dogechat-client.js"
     ],
     "includePattern": ".+\\.js(doc)?$",
     "excludePattern": "(^|\\/|\\\\)_"

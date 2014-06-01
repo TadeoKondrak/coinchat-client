@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: coinchat-client.js</title>
-    
+    <title>JSDoc: Source: dogechat-client.js</title>
+
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
     <!--[if lt IE 9]>
@@ -16,16 +16,16 @@
 <body>
 
 <div id="main">
-    
-    <h1 class="page-title">Source: coinchat-client.js</h1>
-    
+
+    <h1 class="page-title">Source: dogechat-client.js</h1>
+
     
 
 
     
     <section>
         <article>
-            <pre class="prettyprint source"><code>var io = require('socket.io-client');
+            <pre class="prettyprint source linenums"><code>var io = require('socket.io-client');
 
 /**
  * @class
@@ -44,20 +44,20 @@
  * @property {String}  session         Used to store the session with which we connect
  * @property {Number}  logLevel        Regulates the log level output
  */
-var CoinChatClient = function(cfg) {
+var DogechatClient = function(cfg) {
   this.outputBuffer = [];
   this.socket = null;
   this.connected = false;
   this.messageHandle = null;
-  this.connectionURL = "https://coinchat.org:443";
+  this.connectionURL = "https://dogechat.net:443";
   this.rooms = {};
   this.colors = ['000'];
   this.messageHandlers = [];
 
   if(!cfg.username) {
-    throw new Error("No Username given.");
-  } else if (!cfg.session && !cfg.password) {
-    throw new Error("No password or session given.");
+    throw new MissingParameterException("No Username given.");
+  } else if (!cfg.session &amp;&amp; !cfg.password) {
+    throw new MissingParameterException("No password or session given.");
   }
 
   this.username = cfg.username;
@@ -68,29 +68,30 @@ var CoinChatClient = function(cfg) {
 }
 
 /**
- * Connects to the coinchat servers if not already connected
+ * Connects to the Dogechat servers if not already connected
  * @param {Function} callback  (optional) Function to call when connection was successful.
  * @returns {Boolean}
  */
-CoinChatClient.prototype.connect = function(callback) {
+DogechatClient.prototype.connect = function(callback) {
   if (this.connected)
     return false;
-  
+
   this.socket = io.connect(this.connectionURL, {
-    secure: true
+    secure: true,
+    reconnect: false
   });
-  
+
   this.socket.on('connect', function() {
     this.connected = true;
-    
+
     this.addListeners();
     if(typeof callback == 'function') {
       callback();
     }
-    
+
     this.pumpMessages();
   }.bind(this));
-  
+
   return true;
 };
 
@@ -99,65 +100,73 @@ CoinChatClient.prototype.connect = function(callback) {
  * and leaves every channel before disconnecting.
  * @returns {Boolean} True when connected, false when not connected
  */
-CoinChatClient.prototype.disconnect = function() {
+DogechatClient.prototype.disconnect = function() {
   if(!this.connected)
     return false;
-  
+
   if(this.messageHandle) {
     clearInterval(this.messageHandle);
     this.messageHandle = null;
   }
-  
+
   for (var k in this.rooms) {
     if (this.rooms[k]) {
       this.leave(k);
     }
   }
-  
+
   this.connected = false;
   return true;
 };
 
 /**
- * Adds CoinChat event listeners. May be
+ * Adds Dogechat event listeners. May be
  * extended in the future.
  * @private
  */
-CoinChatClient.prototype.addListeners = function() {
+DogechatClient.prototype.addListeners = function() {
   this.socket.on('chat', this.messageHandler.bind(this));
 };
 
 /**
  * Parses the messages and directs them further to
  * all other messageHandlers.
+ *
+ * IMPORTANT: You can chain message handlers and enhance
+ * the basic msg object. All message handlers in the chain
+ * are called unless one message handler returns an explicit
+ * false.
+ *
  * Should not be called directly.
  * @private
  */
-CoinChatClient.prototype.messageHandler = function(data) {
+DogechatClient.prototype.messageHandler = function(data) {
+  var res = true;
   data.isTip = false;
   data.tipAmount = 0;
-  
+
   if (contains(data.message, ["&lt;span style=\"color: #"])) {
-		data.message = data.message.split("\">")[1];
-		data.message = data.message.replace("&lt;/span>", "");		
-  } else if(contains(data.message, ["&lt;span class='label label-success'>has tipped " + this.username])) {
-		var amt = data.message.split("&lt;span class='label label-success'>has tipped ")[1].split(" ")[1];
+    data.message = data.message.split("\">", 1)[1];
+    data.message = data.message.replace("&lt;/span>", "");
+  } else if(contains(data.message, ["&lt;span class='label label-success'>has tipped " + this.username + " "])) {
+    var amt = data.message.split("&lt;span class='label label-success'>has tipped ")[1].split(" ")[1];
     data.isTip = true;
     data.tipAmount = Number(amt);
-	}
-  
-	data.params = data.message.toLowerCase().trim().split(" ");
-  
+  }
+
+  data.params = data.message.toLowerCase().trim().split(" ");
+
   for(var i=0; i&lt;this.messageHandlers.length; i++) {
     switch(typeof this.messageHandlers[i]) {
       case 'object':
-        this.messageHandlers[i].handleMessage(data);
+        res = this.messageHandlers[i].handleMessage(data);
         break;
-        
+
       case 'function':
-        this.messageHandlers[i](data);
+        res = this.messageHandlers[i](data);
         break;
     }
+    if (res === false) break;
   }
 };
 
@@ -166,7 +175,7 @@ CoinChatClient.prototype.messageHandler = function(data) {
  * on connect. You shall not call this yourself.
  * @private
  */
-CoinChatClient.prototype.pumpMessages = function() {
+DogechatClient.prototype.pumpMessages = function() {
   this.messageHandle = setInterval(function(){
     var m = this.outputBuffer[0];
     if(m) {
@@ -184,7 +193,7 @@ CoinChatClient.prototype.pumpMessages = function() {
  * Logs in the user
  * @param {Function} callback (optional) Function to be called when successfully logged in
  */
-CoinChatClient.prototype.login = function(callback) {
+DogechatClient.prototype.login = function(callback) {
   if(this.password) {
     this.s('accounts', {
       action: "login",
@@ -197,10 +206,16 @@ CoinChatClient.prototype.login = function(callback) {
       session: this.session
     });
   }
-  
-  this.socket.on('loggedin', function() {
+
+  this.socket.once('message', function(data) {
+    if( data.type === 'alert-error' ) {
+      throw new InvalidCredentialsException("Username or password is not correct");
+    }
+  });
+
+  this.socket.once('loggedin', function(data) {
     if(typeof callback === 'function') {
-      callback();
+      callback(data);
     }
   });
 };
@@ -210,10 +225,10 @@ CoinChatClient.prototype.login = function(callback) {
  * @param {String}  room     Name of the room to post message
  * @param {String}  message  Message which should be sent.
  * @param {String}  color    (Optional) color in which the message should appear.
- * @see CoinChatClient#colors
+ * @see DogechatClient#colors
  * @return Boolean
  */
-CoinChatClient.prototype.pushMessage = function(room, message, color) {
+DogechatClient.prototype.pushMessage = function(room, message, color) {
   if(typeof room === 'object') {
     message = room.message;
     color = room.color || "000";
@@ -235,6 +250,35 @@ CoinChatClient.prototype.pushMessage = function(room, message, color) {
 };
 
 /**
+ * Pushes a private message to the output buffer
+ * @param {String}  user     Name of the user to post message to
+ * @param {String}  message  Message which should be sent to user
+ * @param {String}  color    (Optional) color in which the message should appear.
+ * @see DogechatClient#colors
+ * @return Boolean
+ */
+DogechatClient.prototype.pushPrivateMessage = function(user, message, color) {
+  if(typeof user === 'object') {
+    message = user.message;
+    color = user.color || "000";
+    user = user.user;
+  } else {
+    color = color || "000";
+  }
+
+  if (!message || !user)
+    return false;
+
+  this.outputBuffer.push({
+    room: user+':'+this.username,
+    message: message,
+    color: color
+  });
+
+  return true;
+};
+
+/**
  * Pushes a tip to the output buffer
  * @param {String}  room     Name of the room to post tip to
  * @param {String}  user     Name of the user to post tip to
@@ -242,14 +286,14 @@ CoinChatClient.prototype.pushMessage = function(room, message, color) {
  * @param {String}  message  (Optional) message to post with tip
  * @return Boolean
  */
-CoinChatClient.prototype.pushTip = function(room, user, tip, message) {
+DogechatClient.prototype.pushTip = function(room, user, tip, message) {
   if(typeof room === 'object') {
     message = room.message;
     tip = room.tip;
     user = room.user;
     room = room.room;
   }
-  
+
   this.outputBuffer.push({
     room: room,
     user: user,
@@ -265,7 +309,7 @@ CoinChatClient.prototype.pushTip = function(room, user, tip, message) {
  * @param {String} room   Name of the room to join
  * @returns {Boolean}
  */
-CoinChatClient.prototype.join = function(room) {
+DogechatClient.prototype.join = function(room) {
   if(this.rooms[room]) {
     return false;
   }
@@ -281,7 +325,7 @@ CoinChatClient.prototype.join = function(room) {
  * we can always leave a room EVEN IF WE'RE NOT IN IT (d'oh!)
  * @param {String} room   Name of the room to leave
  */
-CoinChatClient.prototype.leave = function(room) {
+DogechatClient.prototype.leave = function(room) {
   this.s('quitroom', { room: room });
 
   this.rooms[room] = false;
@@ -294,7 +338,7 @@ CoinChatClient.prototype.leave = function(room) {
  * @param {Object}  obj  (optional) Object to send data with.
  * @returns {Boolean}
  */
-CoinChatClient.prototype.s = function(evt, obj) {
+DogechatClient.prototype.s = function(evt, obj) {
   if(!evt || !this.connected)
     return false;
 
@@ -309,17 +353,17 @@ CoinChatClient.prototype.s = function(evt, obj) {
  * @throws {InvalidTypeException} If given handler is not a function or object
  * @returns {Boolean}
  */
-CoinChatClient.prototype.register = function(handler) {
+DogechatClient.prototype.register = function(handler) {
   var handlerType = typeof handler;
-  if (handlerType != 'object' && handlerType != 'function') {
+  if (handlerType != 'object' &amp;&amp; handlerType != 'function') {
     throw new InvalidTypeException('Not a valid message handler');
   }
-  
+
   this.messageHandlers.push(handler);
   return true;
 };
 
-module.exports = CoinChatClient;
+module.exports = DogechatClient;
 
 
 /**
@@ -347,7 +391,32 @@ var InvalidTypeException = function(message) {
   this.message = message;
 };
 
-InvalidTypeException.prototype = Error.prototype;</code></pre>
+InvalidTypeException.prototype = Error.prototype;
+
+/**
+ * Thrown when a parameter is missing
+ * @class
+ * @param {String} message
+ */
+var MissingParameterException = function(message) {
+  this.name = "MissingParameterException";
+  this.message = message;
+};
+
+MissingParameterException.prototype = Error.prototype;
+
+/**
+ * Thrown when credentials are incorrect
+ * @class
+ * @param {String} message
+ */
+var InvalidCredentialsException = function(message) {
+  this.name = "InvalidCredentialsException";
+  this.message = message;
+};
+
+InvalidCredentialsException.prototype = Error.prototype;
+</code></pre>
         </article>
     </section>
 
@@ -357,13 +426,13 @@ InvalidTypeException.prototype = Error.prototype;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Classes</h3><ul><li><a href="CoinChatClient.html">CoinChatClient</a></li><li><a href="InvalidTypeException.html">InvalidTypeException</a></li></ul><h3>Global</h3><ul><li><a href="global.html#contains">contains</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Classes</h3><ul><li><a href="DogechatClient.html">DogechatClient</a></li><li><a href="InvalidCredentialsException.html">InvalidCredentialsException</a></li><li><a href="InvalidTypeException.html">InvalidTypeException</a></li><li><a href="MissingParameterException.html">MissingParameterException</a></li></ul><h3>Global</h3><ul><li><a href="global.html#contains">contains</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.0-dev</a> on Thu Sep 05 2013 20:23:12 GMT+0200 (MESZ)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-alpha5</a> on Sun Jun 01 2014 16:19:10 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>

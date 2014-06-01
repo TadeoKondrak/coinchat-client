@@ -1,25 +1,25 @@
 {
-  "name": "coinchat-client",
+  "name": "dogechat-client",
   "version": "0.0.4",
-  "description": "The coinchat-client is a framework aiding to help writing automated clients for coinchat.org.",
-  "main": "lib/coinchat-client.js",
+  "description": "The dogechat-client is a framework aiding to help writing automated clients for dogechat.net.",
+  "main": "lib/dogechat-client.js",
   "scripts": {
     "test": "mocha -R spec"
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/sargodarya/coinchat-client"
+    "url": "http://github.com/tadeokondrak/dogechat-client"
   },
   "keywords": [
-    "coinchat",
+    "dogechat",
     "bot",
     "client",
     "framework"
   ],
-  "author": "Sargo Darya",
+  "author": "Tadeo Kondrak",
   "license": "WTFPLv2",
   "bugs": {
-    "url": "https://github.com/sargodarya/coinchat-client/issues"
+    "url": "https://github.com/tadeokondrak/dogechat-client/issues"
   },
   "dependencies": {
     "socket.io-client": "*"

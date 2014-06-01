@@ -1,6 +1,6 @@
-var CoinChatClient = require('coinchat-client');
+var DogechatClient = require('dogechat-client');
 
-client = new CoinChatClient({
+client = new DogechatClient({
   username: 'foo',
   password: 'bar'
 });
@@ -13,7 +13,6 @@ client.register(function(msg) {
 // Connect to server and join botgames
 client.connect(function() {
   console.log('Connected to server');
-  client.join('botgames');
 });
 
 // When Ctrl+C is pressed, exit gracefully

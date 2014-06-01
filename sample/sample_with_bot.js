@@ -1,8 +1,8 @@
-var CoinChatClient = require('../lib/coinchat-client'),
+var DogechatClient = require('../lib/Dogechat-client'),
     SampleBot = require('./lib/samplebot.js'),
     client, bot;
 
-client = new CoinChatClient({
+client = new DogechatClient({
   username: 'foo',
   password: 'bar'
 });

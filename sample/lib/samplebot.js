@@ -16,7 +16,7 @@ var SampleBot = function(client) {
     '!#shutdown': this.shutdown
   };
 
-  this.helpText = "Here goes your helptext";
+  this.helpText = "Here goes your helptext.";
 };
 
 /**
