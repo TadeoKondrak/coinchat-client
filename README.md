@@ -8,6 +8,8 @@
 
 Refer to the sample in the sample folder.
 
+Docs: http://tadeokondrak.com/dogechat-client/
+
 ##### License
                DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
                        Version 2, December 2004
