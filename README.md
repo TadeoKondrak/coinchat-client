@@ -1,4 +1,4 @@
-# Dogechat Client
+# Dogechat Client ![](http://img.shields.io/travis/TadeoKondrak/dogechat-client.svg)
 
 #### Easy Install
 
